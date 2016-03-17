@@ -28,11 +28,10 @@ def load_data(args):
     print 'vocab size:', len(vocab)
     return dataset, words, vocab
 
-# arguments
+#=====[ ArgParsing ]=====
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir',                   type=str,   default='data/tinyshakespeare')
 parser.add_argument('--checkpoint_dir',             type=str,   default='cv')
-parser.add_argument('--gpu',                        type=int,   default=-1)
 parser.add_argument('--rnn_size',                   type=int,   default=128)
 parser.add_argument('--learning_rate',              type=float, default=2e-3)
 parser.add_argument('--learning_rate_decay',        type=float, default=0.97)
@@ -44,11 +43,7 @@ parser.add_argument('--batchsize',                  type=int,   default=50)
 parser.add_argument('--epochs',                     type=int,   default=50)
 parser.add_argument('--grad_clip',                  type=int,   default=5)
 parser.add_argument('--init_from',                  type=str,   default='')
-
 args = parser.parse_args()
-
-if not os.path.exists(args.checkpoint_dir):
-    os.mkdir(args.checkpoint_dir)
 
 n_epochs    = args.epochs
 n_units     = args.rnn_size
@@ -56,6 +51,10 @@ batchsize   = args.batchsize
 bprop_len   = args.seq_length
 grad_clip   = args.grad_clip
 
+if not os.path.exists(args.checkpoint_dir):
+    os.mkdir(args.checkpoint_dir)
+
+#=====[ Load data and model ]=====
 train_data, words, vocab = load_data(args)
 pickle.dump(vocab, open('%s/vocab.bin'%args.data_dir, 'wb'))
 
@@ -64,14 +63,12 @@ if len(args.init_from) > 0:
 else:
     model = CharRNN(len(vocab), n_units)
 
-if args.gpu >= 0:
-    cuda.get_device(args.gpu).use()
-    model.to_gpu()
-
+#=====[ Setup Optimizer ]=====
 optimizer = optimizers.RMSprop(lr=args.learning_rate, alpha=args.decay_rate, eps=1e-8)
 optimizer.setup(model)
 
-whole_len    = train_data.shape[0]
+#=====[ Setup training params ]=====
+whole_len    = train_data.shape[0] # data
 jump         = whole_len / batchsize
 epoch        = 0
 start_at     = time.time()
